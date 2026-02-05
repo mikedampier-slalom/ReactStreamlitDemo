@@ -1,0 +1,32 @@
+{
+  "body": "{\"test\":\"body\"}",
+  "resource": "/hello",
+  "path": "/hello",
+  "httpMethod": "GET",
+  "isBase64Encoded": false,
+  "queryStringParameters": {
+    "foo": "bar"
+  },
+  "pathParameters": null,
+  "stageVariables": null,
+  "headers": {
+    "Accept": "text/html,application/json",
+    "Accept-Encoding": "gzip, deflate, sdch",
+    "Accept-Language": "en-US,en;q=0.8",
+    "Cache-Control": "max-age=0",
+    "Host": "127.0.0.1:3000",
+    "User-Agent": "Mozilla/5.0"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "resourceId": "123456",
+    "stage": "prod",
+    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+    "identity": {
+      "sourceIp": "127.0.0.1"
+    },
+    "resourcePath": "/hello",
+    "httpMethod": "GET",
+    "apiId": "1234567890"
+  }
+}
