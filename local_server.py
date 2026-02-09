@@ -17,7 +17,12 @@ load_dotenv()
 # Add lambda directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lambda'))
 
-from app import lambda_handler, test_snowflake_handler, cortex_analyst_chat_handler, execute_sql_handler
+from app import (
+    lambda_handler,
+    test_snowflake_handler,
+    cortex_analyst_chat_handler,
+    execute_sql_snowpark_handler,
+)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React app
@@ -91,7 +96,7 @@ def chat():
 def execute_sql():
     """Execute SQL query endpoint"""
     event = create_api_gateway_event("/execute-sql", request.method)
-    response = execute_sql_handler(event, None)
+    response = execute_sql_snowpark_handler(event, None)
     
     status_code = response.get('statusCode', 200)
     headers = response.get('headers', {})

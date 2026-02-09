@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import snowflake.connector
+from snowflake.snowpark import Session
 from typing import Dict, List, Optional, Tuple
 from datetime import date, datetime
 from decimal import Decimal
@@ -59,6 +60,34 @@ def get_snowflake_connection():
         login_timeout=10,
         network_timeout=10
     )
+
+
+def get_snowpark_session() -> Session:
+    """Create a Snowpark session using environment credentials."""
+    account = os.environ.get("SNOWFLAKE_ACCOUNT")
+    user = os.environ.get("SNOWFLAKE_USER")
+    token = os.environ.get("SNOWFLAKE_TOKEN")
+    warehouse = os.environ.get("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
+    database = os.environ.get("SNOWFLAKE_DATABASE")
+    schema = os.environ.get("SNOWFLAKE_SCHEMA", "PUBLIC")
+
+    if account and ".snowflakecomputing.com" in account:
+        account = account.split(".snowflakecomputing.com")[0]
+
+    if not all([account, user, token, database]):
+        raise ValueError("Missing Snowflake credentials for Snowpark session")
+
+    connection_parameters = {
+        "account": account,
+        "user": user,
+        "password": token,
+        "warehouse": warehouse,
+        "database": database,
+        "schema": schema,
+        "role": os.environ.get("SNOWFLAKE_ROLE"),
+    }
+
+    return Session.builder.configs(connection_parameters).create()
 
 
 def cortex_analyst_chat_handler(event, context):
@@ -283,6 +312,68 @@ def execute_sql_handler(event, context):
                 "type": type(e).__name__
             })
         }
+
+
+def execute_sql_snowpark_handler(event, context):
+    """
+    Execute SQL query with Snowpark and return processed results.
+
+    Expects JSON body:
+    {
+        "sql": "SELECT ..."
+    }
+    """
+    session = None
+    try:
+        body = json.loads(event.get("body", "{}"))
+        sql = body.get("sql", "")
+
+        if not sql:
+            return {
+                "statusCode": 400,
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                "body": json.dumps({
+                    "error": "No SQL query provided"
+                })
+            }
+
+        session = get_snowpark_session()
+        df = session.sql(sql).to_pandas()
+
+        columns = list(df.columns)
+        records = df.to_dict(orient="records")
+
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({
+                "columns": columns,
+                "data": records,
+                "row_count": len(records)
+            }, default=str)
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({
+                "error": str(e),
+                "type": type(e).__name__
+            })
+        }
+    finally:
+        if session is not None:
+            session.close()
 
 
 def test_snowflake_handler(event, context):

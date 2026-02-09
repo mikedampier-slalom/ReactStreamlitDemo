@@ -16,7 +16,8 @@ from app import (
     lambda_handler,
     test_snowflake_handler,
     cortex_analyst_chat_handler,
-    execute_sql_handler
+    execute_sql_handler,
+    execute_sql_snowpark_handler
 )
 
 # Load environment variables
@@ -143,6 +144,35 @@ def test_execute_sql():
         traceback.print_exc()
     print()
 
+
+def test_execute_sql_snowpark():
+    """Test 5: Execute SQL via Snowpark"""
+    print("=" * 60)
+    print("TEST 5: Execute SQL (Snowpark)")
+    print("=" * 60)
+
+    body = {
+        "sql": "SELECT CURRENT_VERSION() as version, CURRENT_WAREHOUSE() as warehouse, CURRENT_DATABASE() as database"
+    }
+
+    event = create_test_event(body)
+    try:
+        response = execute_sql_snowpark_handler(event, None)
+        print(f"✅ Status Code: {response['statusCode']}")
+        body_response = json.loads(response['body'])
+
+        if 'error' in body_response:
+            print(f"❌ Error: {body_response['error']}")
+        else:
+            print(f"Columns: {body_response.get('columns')}")
+            print(f"Row Count: {body_response.get('row_count')}")
+            print(f"Data: {json.dumps(body_response.get('data'), indent=2)}")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+    print()
+
 def main():
     print("\n" + "=" * 60)
     print("🧪 LAMBDA HANDLER TEST SUITE")
@@ -168,6 +198,7 @@ def main():
     test_basic_lambda()
     test_snowflake_connection()
     test_execute_sql()
+    test_execute_sql_snowpark()
     test_cortex_analyst_chat()
     
     print("=" * 60)
